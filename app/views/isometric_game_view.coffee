@@ -148,15 +148,46 @@ class App.IsometricGameView extends Mozart.View
     @ctx.drawImage(@bggrass[0], tileX, tileY, 64, 32, scrX, scrY, 64, 32)
 
   drawHud: =>
-    #FPS
-    @ctx.fillStyle    = '#fff'
-    @ctx.font         = '12px sans-serif'
-    @ctx.textBaseline = 'top'
-    @ctx.fillText("View: X:#{@viewX} Y:#{@viewY}, Mouse: X: #{@mouseX} Y: #{@mouseY}, #{@lastFps} fps", 1, @height-13)
+    @drawHudFps()
+    @drawHudCurrentTile()
     # Outline
     @ctx.strokeStyle = '#555555'
     @ctx.lineWidth = 1
     @ctx.strokeRect(0, 0, @width, @height)
+
+  drawHudCurrentTile: =>
+    @ctx.fillStyle = '#000'
+    @ctx.strokeStyle = '#555'
+    @ctx.lineWidth = 1
+    @ctx.fillRect(@width-110, @height-150, 100, 140)
+    @ctx.strokeRect(@width-110, @height-150, 100, 140)
+    
+    @current = @getTileStack(@mouseX, @mouseY)
+
+    if @current?
+      for z, tiles of @current
+        for tile in tiles
+          @ctx.drawImage(@bggrass[0], tile.x*64, tile.y*32, 64, 32, @width-90, @height-60-(z*32), 64, 32)
+    else
+      @ctx.fillStyle    = '#fff'
+      @ctx.font         = '12px sans-serif'
+      @ctx.textBaseline = 'top'
+      @ctx.fillText("No Tiles", @width-85, @height-110)
+
+  drawHudFps: =>
+
+    @ctx.fillStyle = '#000'
+    @ctx.strokeStyle = '#555'
+    @ctx.lineWidth = "1px"
+    @ctx.fillRect(10, @height-30, 250, 20)
+    @ctx.strokeRect(10, @height-30, 250, 20)
+
+    #FPS
+    @ctx.fillStyle    = '#fff'
+    @ctx.font         = '12px sans-serif'
+    @ctx.textBaseline = 'top'
+    @ctx.fillText("View: X:#{@viewX} Y:#{@viewY}, Mouse: X: #{@mouseX} Y: #{@mouseY}, #{@lastFps} fps",
+      15, @height-27)
 
   addTile: (tx,ty, x, y, z) =>
     @world[x] ?= {}
@@ -165,6 +196,15 @@ class App.IsometricGameView extends Mozart.View
     for ex in @world[x][y][z]
       return if ex.x == tx and ex.y == ty 
     @world[x][y][z].push {x:tx, y:ty}
+
+
+  getTile: (x,y,z = 0) =>
+    return null unless @world[x]? and @world[x][y]? and @world[x][y][z]?
+    @world[x][y][z]
+
+  getTileStack: (x,y) =>
+    return null unless @world[x]? and @world[x][y]?
+    @world[x][y]
 
   clearTile: (x,y,z) =>
     return unless @world[x]? and @world[x][y]? and @world[x][y][z]?
@@ -177,16 +217,14 @@ class App.IsometricGameView extends Mozart.View
       delete @world[x]
 
   # Mouse
-
   mouseMove: (e) =>
     mx = Math.round((e.offsetX-32)/32)
-    my = Math.round((e.offsetY-16)/16)
+    my = Math.round((e.offsetY-32)/16)
 
     @mouseY = Math.round(((my + mx) - @midY*2)/2)+ @viewY
     @mouseX = Math.round((0-(mx - my))/2)+@viewX
 
   # Keys
-
   checkKeyDown: (evt) =>
     @keysDown[evt.keyCode]=1
     true
