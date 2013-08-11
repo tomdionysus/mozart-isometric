@@ -1,0 +1,18 @@
+/* Default SCSS file. Please place all SCSS files in the scss directory. */
+
+html {
+	overflow-y:scroll;
+}
+body {
+	margin-top: 50px;
+	background-color: black;
+	color: gray;
+}
+
+.isotile {
+  width: 64px;
+  height: 32px;
+  position: absolute;
+  background-image: url('/img/grassland-tiles.png');
+  background-position: 0px 0px;
+}
