@@ -1,12 +1,12 @@
 {
   "author": "Tom Cully",
-  "name": "mozart-empty",
-  "description": "Empty Mozart Project",
+  "name": "mozart-isometric",
+  "description": "A prototype Mozart isometric game engine",
   "version": "0.0.1",
   "homepage": "",
   "repository": {
     "type": "git",
-    "url": "git@github.com:bigcommerce/mozart-empty.git"
+    "url": "git@github.com:tomcully/mozart-isometric.git"
   },
   "engines": {
     "node": "0.8.x"
