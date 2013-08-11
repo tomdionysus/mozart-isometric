@@ -32,6 +32,7 @@ class App.IsometricGameView extends Mozart.View
 
     @world = {}
 
+
     @addTile(0,0,6,5,0)
     @addTile(4,2,6,5,2)
     @addTile(4,3,6,5,1)
@@ -50,7 +51,8 @@ class App.IsometricGameView extends Mozart.View
     @midY = Math.round(@height/32)
     @midX = Math.round(@width/64)
 
-    console.log @midX, @midY
+    @mouseX = 0
+    @mouseY = 0
 
     @set('viewX',0)
     @set('viewY',0)
@@ -83,6 +85,17 @@ class App.IsometricGameView extends Mozart.View
         when "40"
           @set 'viewY', @viewY+1
           @set 'viewX', @viewX+1
+
+        when "71"
+          # grass
+          @addTile(0,0,@mouseX, @mouseY, 0)
+        when "87"
+          #water
+          @addTile(0,19,@mouseX, @mouseY, 0)
+        when "68"
+          # delete
+          @clearTile(@mouseX, @mouseY, 0)
+
         else
           console.log(code)
 
@@ -145,13 +158,23 @@ class App.IsometricGameView extends Mozart.View
     @ctx.lineWidth = 1
     @ctx.strokeRect(0, 0, @width, @height)
 
-
-
   addTile: (tx,ty, x, y, z) =>
     @world[x] ?= {}
     @world[x][y] ?= {}
     @world[x][y][z] ?= []
+    for ex in @world[x][y][z]
+      return if ex.x == tx and ex.y == ty 
     @world[x][y][z].push {x:tx, y:ty}
+
+  clearTile: (x,y,z) =>
+    return unless @world[x]? and @world[x][y]? and @world[x][y][z]?
+    t = @world[x][y]
+    delete t[z]
+    if _.keys(@world[x][y]).length == 0
+      t = @world[x]
+      delete t[y]
+    if _.keys(@world[x]).length == 0
+      delete @world[x]
 
   # Mouse
 
@@ -174,10 +197,3 @@ class App.IsometricGameView extends Mozart.View
 
   clearKeys: (evt) =>
     @keysDown = {}
-
-  scroll: (e) =>
-    console.log e
-    e.preventDefault()
-
-  click: =>
-    @addTile(0,0,@mouseX, @mouseY, 0)
