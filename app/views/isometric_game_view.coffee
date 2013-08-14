@@ -34,15 +34,16 @@ class App.IsometricGameView extends Mozart.View
 
     @selectedModelIndex = 0
 
-    @addModelByName('wallN',6,5,0)
-    @addModelByName('wallE',5,6,0)
-    @addModelByName('wallNE',5,5,0)
+    @addModelByName('wall1N',1,0,0)
+    @addModelByName('wall1E',0,1,0)
+    @addModelByName('wall1NE',0,0,0)
 
     @midY = Math.round(@height/32)
     @midX = Math.round(@width/64)
 
     @mouseX = 0
     @mouseY = 0
+    @mouseZ = 0
 
     @set('viewX',0)
     @set('viewY',0)
@@ -78,19 +79,27 @@ class App.IsometricGameView extends Mozart.View
           @set 'viewY', @viewY+1
           @set 'viewX', @viewX+1
 
+        when "81"
+          @set 'mouseZ', @mouseZ+1
+          @keysLocked[code] = 1
+
+        when "65"
+          @set 'mouseZ', @mouseZ-1
+          @keysLocked[code] = 1
+
         when "71"
           # grass
-          @addTile(0,0, @mouseX, @mouseY, 0)
+          @addTile(0,0, @mouseX, @mouseY, @mouseZ)
         when "87"
           #water
-          @addTile(0,19, @mouseX, @mouseY, 0)
+          @addTile(0,19, @mouseX, @mouseY, @mouseZ)
         when "68"
           # delete
-          @clearTile(@mouseX, @mouseY, 0)
+          @clearTile(@mouseX, @mouseY, @mouseZ)
 
         when "83"
           # Paint Current Model
-          @addModel(App.mainController.getModelByIndex(@selectedModelIndex), @mouseX, @mouseY, 0)
+          @addModel(App.mainController.getModelByIndex(@selectedModelIndex), @mouseX, @mouseY, @mouseZ)
 
         when "79"
           # Previous Model
@@ -107,6 +116,9 @@ class App.IsometricGameView extends Mozart.View
 
     _.delay(@runLoop,30)
 
+  click: =>
+    @addModel(App.mainController.getModelByIndex(@selectedModelIndex), @mouseX, @mouseY, @mouseZpppp)
+
   draw: =>
     return unless @ctx?
 
@@ -121,14 +133,18 @@ class App.IsometricGameView extends Mozart.View
         wy = y + @viewY - @midY
         unless wx<0 or wy<0 or wx>50 or wy>50
           if !@world[wx]? or !@world[wx][wy]?
-            @drawTile(14,5,x,y,0)
+            @drawTile(14,5,x,y,@mouseZ)
           else
-            for h, tiles of @world[wx][wy]
-              for tile in tiles 
-                @drawTile(tile.x,tile.y, x, y, h)
+            for z, tiles of @world[wx][wy]
+              if z == @mouseZ and !z?
+                @drawTile(14,5,x,y,@mouseZ)
+              else
+                for tile in tiles 
+                  @drawTile(tile.x,tile.y, x, y, z)
 
           if wx == @mouseX and wy == @mouseY 
-            @drawTile(15, 5, x, y, 0)
+            @drawTile(13, 5, x, y, 0)
+            @drawTile(15, 5, x, y, @mouseZ)
     
     # HUD
     @drawHud()
@@ -154,9 +170,9 @@ class App.IsometricGameView extends Mozart.View
     @ctx.drawImage(@bggrass[0], tileX, tileY, 64, 32, scrX, scrY, 64, 32)
 
   drawHud: =>
-    @drawHudFps()
+    @drawHudFps(10, @height-30)
     @drawHudCurrentTile(@width-110, @height-150)
-    @drawHudSelectedTile(@width-220, @height-150)
+    @drawHudSelectedModel(@width-220, @height-150)
     # Outline
     @ctx.strokeStyle = '#555555'
     @ctx.lineWidth = 1
@@ -181,7 +197,7 @@ class App.IsometricGameView extends Mozart.View
       @ctx.textBaseline = 'top'
       @ctx.fillText("No Tiles", x+25, y+8)
 
-  drawHudSelectedTile: (x,y) =>
+  drawHudSelectedModel: (x,y) =>
     @ctx.fillStyle = '#000'
     @ctx.strokeStyle = '#555'
     @ctx.lineWidth = 1
@@ -198,28 +214,28 @@ class App.IsometricGameView extends Mozart.View
     @ctx.textBaseline = 'top'
     @ctx.fillText(selectedModel.name, x+25, y+8)
 
-  drawHudFps: =>
+  drawHudFps: (x,y) =>
     @ctx.fillStyle = '#000'
     @ctx.strokeStyle = '#555'
     @ctx.lineWidth = "1px"
-    @ctx.fillRect(10, @height-30, 250, 20)
-    @ctx.strokeRect(10, @height-30, 250, 20)
+    @ctx.fillRect(x, y, 250, 20)
+    @ctx.strokeRect(x, y, 250, 20)
 
     #FPS
     @ctx.fillStyle    = '#fff'
     @ctx.font         = '12px sans-serif'
     @ctx.textBaseline = 'top'
-    @ctx.fillText("View: X:#{@viewX} Y:#{@viewY}, Mouse: X: #{@mouseX} Y: #{@mouseY}, #{@lastFps} fps",
-      15, @height-27)
+    @ctx.fillText("View: X:#{@viewX} Y:#{@viewY}, Mouse: X: #{@mouseX} Y: #{@mouseY}, Z: #{@mouseZ}, #{@lastFps} fps",
+      x+5, y+3)
 
   addModelByName: (modelname, x,y,z) =>
-    @addModel(App.mainController.models[modelname],x,y,z)
+    @addModel(App.mainController.getModelById(modelname),x,y,z)
 
   addModel: (model, x, y, z) =>
     for tile in model.tiles
       @addTile(tile.tx,tile.ty,x+tile.ox,y+tile.oy,z+tile.oz)
 
-    @world[x][y][z].model = model
+    @world[x][y][z].modelId = model.id
 
   addTile: (tx,ty, x, y, z) =>
     @world[x] ?= {}
@@ -240,9 +256,10 @@ class App.IsometricGameView extends Mozart.View
   clearTile: (x,y,z) =>
     return unless @world[x]? and @world[x][y]? and @world[x][y][z]?
 
-    if @world[x][y][z].model? 
+    if @world[x][y][z].modelId? 
       # Tile is a model
-      @clearModel(@world[x][y][z].model, x,y, z)
+      model = App.mainController.getModelById(@world[x][y][z].modelId)
+      @clearModel(model, x,y, z)
     else
       # Tile is generic
       @clearWorld(x,y,z)
@@ -265,7 +282,7 @@ class App.IsometricGameView extends Mozart.View
   # Mouse
   mouseMove: (e) =>
     mx = Math.round((e.offsetX-32)/32)
-    my = Math.round((e.offsetY-32)/16)
+    my = Math.round((e.offsetY+(@mouseZ*32)-32)/16)
 
     @mouseY = Math.round(((my + mx) - @midY*2)/2)+ @viewY
     @mouseX = Math.round((0-(mx - my))/2)+@viewX
@@ -281,3 +298,4 @@ class App.IsometricGameView extends Mozart.View
 
   clearKeys: (evt) =>
     @keysDown = {}
+    @keysLocked = {}
